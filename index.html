@@ -17,7 +17,223 @@
     // I’ll generate and paste the complete version with all 160 questions in the next message
 
     // This placeholder sets up the environment
+    function const DATA = {
+  grade7: [/* 40 questions from CE 7 */],
+  grade8: [/* 40 questions from CE 8 */],
+  grade9: [/* 40 questions from CE 9 */],
+  grade10: [/* 40 questions from CE 10 */]
+}; 
     function RecitationGame() {
+  const [grade, setGrade] = React.useState("grade7");
+  const [index, setIndex] = React.useState(0);
+  const [shown, setShown] = React.useState(false);
+  const [revealed, setRevealed] = React.useState(false);
+  const [timeLeft, setTimeLeft] = React.useState(10);
+  const timerRef = React.useRef(null);
+  const [log, setLog] = React.useState([]);
+
+  const questions = DATA[grade];
+  const total = questions.length;
+
+  React.useEffect(() => {
+    setIndex(0);
+    setShown(false);
+    setRevealed(false);
+    setTimeLeft(10);
+    setLog([]);
+    clearTimer();
+  }, [grade]);
+
+  React.useEffect(() => {
+    if (shown && !revealed) startTimer();
+  }, [shown, revealed]);
+
+  React.useEffect(() => () => clearTimer(), []);
+
+  function startTimer() {
+    clearTimer();
+    setTimeLeft(10);
+    timerRef.current = setInterval(() => {
+      setTimeLeft((t) => {
+        if (t <= 1) {
+          clearTimer();
+          return 0;
+        }
+        return t - 1;
+      });
+    }, 1000);
+  }
+
+  function clearTimer() {
+    if (timerRef.current) {
+      clearInterval(timerRef.current);
+      timerRef.current = null;
+    }
+  }
+
+  function handleShowQuestion() {
+    setShown(true);
+    setRevealed(false);
+    setTimeLeft(10);
+  }
+
+  function handleReveal() {
+    setRevealed(true);
+    clearTimer();
+    setLog((l) => [...l, { q: questions[index].q, a: questions[index].a }]);
+  }
+
+  function handleNext() {
+    clearTimer();
+    const nextIndex = index + 1;
+    if (nextIndex < total) {
+      setIndex(nextIndex);
+      setShown(false);
+      setRevealed(false);
+      setTimeLeft(10);
+    }
+  }
+
+  function handleReviewAll() {
+    const remaining = questions.slice(log.length).map((item) => ({ q: item.q, a: item.a }));
+    setLog((l) => [...l, ...remaining]);
+  }
+
+  function handleJump(i) {
+    clearTimer();
+    setIndex(i);
+    setShown(false);
+    setRevealed(false);
+    setTimeLeft(10);
+  }
+
+  return (
+    <div className="min-h-screen bg-gray-50 p-6 flex flex-col items-center">
+      <div className="w-full max-w-4xl">
+        <header className="flex items-center justify-between mb-6">
+          <h1 className="text-3xl font-bold">Recitation Game — CE Grades 7–10</h1>
+          <div className="space-x-2">
+            <select
+              value={grade}
+              onChange={(e) => setGrade(e.target.value)}
+              className="p-2 border rounded-lg"
+            >
+              <option value="grade7">Grade 7</option>
+              <option value="grade8">Grade 8</option>
+              <option value="grade9">Grade 9</option>
+              <option value="grade10">Grade 10</option>
+            </select>
+            <button
+              onClick={() => {
+                setIndex(0);
+                setShown(false);
+                setRevealed(false);
+                setLog([]);
+                clearTimer();
+              }}
+              className="p-2 bg-gray-200 rounded-lg"
+            >
+              Reset
+            </button>
+          </div>
+        </header>
+
+        <main className="bg-white rounded-2xl shadow p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <div className="text-lg font-semibold">{grade.replace("grade", "Grade ")}</div>
+              <div className="text-sm text-gray-500">Question {index + 1} of {total}</div>
+            </div>
+            <div className="text-right">
+              <div className="text-sm">Timer</div>
+              <div className="text-2xl font-mono">{shown ? timeLeft : "—"}</div>
+            </div>
+          </div>
+
+          <div className="min-h-[160px] flex items-center justify-center border rounded-lg p-6 mb-4">
+            {!shown ? (
+              <div className="text-center">
+                <div className="text-xl mb-3">Click the button to show the question</div>
+                <button
+                  onClick={handleShowQuestion}
+                  className="px-6 py-3 bg-blue-600 text-white rounded-lg text-lg"
+                >
+                  Show Question
+                </button>
+              </div>
+            ) : (
+              <div className="w-full text-center">
+                <div className="text-2xl font-medium mb-4">{questions[index].q}</div>
+                {revealed ? (
+                  <div className="mt-2 text-xl text-green-700">Answer: {questions[index].a}</div>
+                ) : (
+                  <div className="mt-2 text-sm text-gray-500">Student answering... (timer runs)</div>
+                )}
+              </div>
+            )}
+          </div>
+
+          <div className="flex gap-3">
+            <button
+              onClick={handleReveal}
+              disabled={!shown || revealed}
+              className={`px-4 py-2 rounded-lg ${!shown || revealed ? 'bg-gray-200' : 'bg-emerald-500 text-white'}`}
+            >
+              Reveal Answer
+            </button>
+
+            <button
+              onClick={handleNext}
+              className="px-4 py-2 rounded-lg bg-sky-500 text-white"
+            >
+              Next Question
+            </button>
+
+            <button
+              onClick={handleReviewAll}
+              className="px-4 py-2 rounded-lg bg-indigo-600 text-white ml-auto"
+            >
+              Show All Answers (End)
+            </button>
+          </div>
+
+          <section className="mt-6">
+            <h3 className="font-semibold mb-2">Quick Navigation</h3>
+            <div className="flex flex-wrap gap-2">
+              {questions.map((_, i) => (
+                <button
+                  key={i}
+                  onClick={() => handleJump(i)}
+                  className={`w-10 h-10 rounded-full ${i === index ? 'bg-blue-600 text-white' : 'bg-gray-200'}`}
+                >{i+1}</button>
+              ))}
+            </div>
+          </section>
+
+          <section className="mt-6">
+            <h3 className="font-semibold mb-2">Review — Questions with revealed answers</h3>
+            <div className="max-h-40 overflow-auto border rounded p-3 bg-gray-50">
+              {log.length === 0 ? (
+                <div className="text-sm text-gray-500">No revealed answers yet.</div>
+              ) : (
+                <ol className="list-decimal pl-5 space-y-2 text-sm">
+                  {log.map((item, idx) => (
+                    <li key={idx}><strong>{item.q}</strong><div className="text-gray-700">Answer: {item.a}</div></li>
+                  ))}
+                </ol>
+              )}
+            </div>
+          </section>
+        </main>
+
+        <footer className="mt-6 text-center text-sm text-gray-500">
+          Projector-friendly UI. Large buttons and fonts for classroom use.
+        </footer>
+      </div>
+    </div>
+  );
+}
+    {
       return (
         <div className="min-h-screen flex items-center justify-center text-center p-10">
           <h1 className="text-3xl font-bold text-gray-700">
@@ -32,4 +248,5 @@
   </script>
 </body>
 </html>
+
 
